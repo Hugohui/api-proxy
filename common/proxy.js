@@ -1,5 +1,8 @@
 const http = require('http');
 const querystring = require('querystring');
+const WebsiteDao = require('../dao/websitedao');
+const websiteDao = new WebsiteDao()
+const url = require('url');
 
 //获取请求的cookie和query等
 let getHeader = (reqClient) => {
@@ -11,14 +14,27 @@ let getHeader = (reqClient) => {
     return headers;
 }
 
-//代理函数，options是代理设置，包括目标服务器ip，port等
-let proxy = (options) => {
-    let reqOptions = {
-        hostname: options.host,
-        port: options.port
+let getHostInfo = (src) => {
+    let url_parse = url.parse(src)
+    let info = {
+        hostname: url_parse.hostname,
+        port: url_parse.port
     }
+    return info
+}
+
+//代理函数，options是代理设置，包括目标服务器ip，port等
+const proxy  = () => {
     //返回请求处理函数，reqClient浏览器的请求，resClient是响应浏览器的对象
-    return function (reqClient, resClient) {
+    return async function (reqClient, resClient) {
+        // 获取代理信息
+        const webinfo = await websiteDao.findOne({_id: reqClient.query.website_id})
+        const webSrc= webinfo['src']
+        let reqOptions = getHostInfo(webSrc)
+
+        console.log('start proxy...')
+        console.log(reqOptions)
+
         //设置目标服务器的请求参数，头中的各项参数
         let headers = getHeader(reqClient);
         reqOptions.headers = reqClient.headers;
