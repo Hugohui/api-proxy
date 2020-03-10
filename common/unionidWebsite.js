@@ -6,6 +6,8 @@ const userDao = new UserDao()
 
 async function unionidWebsite(unionid){
 
+    console.log('start get weblist...')
+
     const dduserinfo = await userDao.findOne({_id: unionid})
 
     const isAdmin = dduserinfo['isadmin'] || false

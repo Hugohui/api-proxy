@@ -14,8 +14,10 @@ const rds = redis.createClient(settings.redisConfig)
  */
 function Auth (req, res, next){
     const params = req.query;
-    const code = params['code'];
+    let code = params['code'];
     const website_id = params['website_id'];
+
+    code = Array.isArray(code) ? code[code.length - 1] : code;
 
     console.log('get params..')
     console.log(params)
@@ -44,7 +46,8 @@ function Auth (req, res, next){
             }
         });
     }else{
-        res.redirect(301, settings.scanLoginUrl + encodeURIComponent(fullPath))
+        _noAuth(res)
+        // res.redirect(301, settings.scanLoginUrl + encodeURIComponent(fullPath))
     }
 }
 
@@ -73,12 +76,24 @@ function _auth(req, res, next, info) {
                 next()
             }else{
                 console.log('auth_fail!!!')
-                res.redirect(301, settings.scanLoginUrl + encodeURIComponent(fullPath))
+                _noAuth(res)
+                // res.redirect(301, settings.scanLoginUrl + encodeURIComponent(fullPath))
             }
         })
     }else{
-        res.redirect(301, settings.scanLoginUrl + encodeURIComponent(fullPath))
+        _noAuth(res)
+        // res.redirect(301, settings.scanLoginUrl + encodeURIComponent(fullPath))
     }
+}
+
+// 无权限
+function _noAuth(res) {
+    const result = JSON.stringify({
+        code: 0,
+        msg: '无权限'
+    })
+    res.write(result)
+    res.end()
 }
 
 module.exports = Auth

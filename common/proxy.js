@@ -14,6 +14,7 @@ let getHeader = (reqClient) => {
     return headers;
 }
 
+// 获取主机信息
 let getHostInfo = (src) => {
     let url_parse = url.parse(src)
     let info = {
