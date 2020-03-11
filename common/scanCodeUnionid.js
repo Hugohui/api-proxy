@@ -18,7 +18,7 @@ async function scanCodeUnionid(code){
 
     const data = {'code': code}
 
-    const url = 'http://scancode.liquidnetwork.com:5005/gateway/scan_code_unionid?code=' + code;
+    const url = 'http://scancode.liquidnetwork.com/white/getuserinfo_bycode?code=' + code;
     const response = request('GET', url)
     const info = JSON.parse(response.getBody('utf8')).data
 
