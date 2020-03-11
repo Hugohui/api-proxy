@@ -19,7 +19,7 @@ let getHostInfo = (src) => {
     let url_parse = url.parse(src)
     let info = {
         hostname: url_parse.hostname,
-        port: url_parse.port
+        port: url_parse.port || 80
     }
     return info
 }
