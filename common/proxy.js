@@ -4,6 +4,9 @@ const WebsiteDao = require('../dao/websitedao');
 const websiteDao = new WebsiteDao()
 const url = require('url');
 
+const nginxConfig = '/api-proxy'
+// const nginxConfig = ''
+
 //获取请求的cookie和query等
 let getHeader = (reqClient) => {
     let headers = reqClient.headers; 
@@ -21,6 +24,10 @@ let getHostInfo = (src) => {
         hostname: url_parse.hostname,
         port: url_parse.port || 80
     }
+    // let info = {
+    //     hostname: '127.0.0.1',
+    //     port: 5003
+    // }
     return info
 }
 
@@ -34,21 +41,34 @@ const proxy  = () => {
         let reqOptions = getHostInfo(webSrc)
 
         console.log('start proxy...')
-        console.log(reqOptions)
+        // console.log(reqOptions)
 
         //设置目标服务器的请求参数，头中的各项参数
         let headers = getHeader(reqClient);
+
         reqOptions.headers = reqClient.headers;
+
         let query = [];
         if (headers.query) {
             Object.keys(headers.query).map(key => {
                 query.push(key + '=' + headers.query[key]);
             });
-            reqOptions.path = headers.path + (query.length === 0 ? '' : ('?' + query.join('&')));
-            
+            reqOptions.path = nginxConfig + headers.path + (query.length === 0 ? '' : ('?' + query.join('&')));
         }
         reqOptions.cookie = headers.cookie;
         reqOptions.method = reqClient.method;
+
+        //普通JSON数据代理
+        let reqBody;
+        if (Object.keys(reqClient.body).length) {
+            reqBody = JSON.stringify(reqClient.body)
+            reqOptions.headers['Content-Length'] = reqBody.length
+            reqOptions.headers['Content-Type'] = 'application/json'
+         }
+
+        console.log('start send http request...')
+        console.log(reqOptions)
+
         //向目标服务器发送请求,reqProxy是向目标服务器的请求，resProxy是目标服务器的响应。
         let reqProxy = http.request(reqOptions, (resProxy) => {
             resProxy.setEncoding('utf8');
@@ -86,8 +106,10 @@ const proxy  = () => {
         
         //普通JSON数据代理
          if (Object.keys(reqClient.body).length) {
-             reqProxy.write(querystring.stringify(reqClient.body));
-             reqProxy.end();
+            console.log('send json body')
+            console.log(reqBody)
+            reqProxy.write(reqBody)
+            reqProxy.end();
          }
     }
 }
