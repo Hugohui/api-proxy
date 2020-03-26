@@ -19,6 +19,7 @@ let { mongoClient } = require('./DB');
  */
 
 const websiteInfoSchema = new Schema({
+    _id: String,
     name: String,
     des: String, 
     src: String,

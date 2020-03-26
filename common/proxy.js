@@ -1,9 +1,7 @@
 const http = require('http');
-const querystring = require('querystring');
-const WebsiteDao = require('../dao/websitedao');
-const websiteDao = new WebsiteDao()
 const url = require('url');
 const settings = require('../settings')
+const Util = require('../utils/Util')
 
 // const nginxConfig = '/api-proxy'
 const nginxConfig = ''
@@ -52,7 +50,8 @@ const proxy  = () => {
         let user_id = userInfo['unionid']
 
         // 获取website_id
-        let website_id = await gtWbsiteIdByDomain(reqClient.headers.host)
+        const website_info = await Util.getWebsiteInfoByDomain(reqClient.headers.host);
+        const website_id = website_info['_id']
 
         // 获取代理信息
         const webinfo = await websiteDao.findOne({_id: website_id})
@@ -137,19 +136,6 @@ const proxy  = () => {
             reqProxy.end();
          }
     }
-}
-
-/**
- * 根据域名获取website_id
- * @param {*} domain 
- */
-async function gtWbsiteIdByDomain(domain){
-    let data = await websiteDao.findOne({
-        "src": {
-            "$regex": eval(`/${domain}/ig`)
-        }
-    })
-    return data ? data['_id'] : ''
 }
 
 module.exports = proxy;

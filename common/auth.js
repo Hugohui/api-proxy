@@ -3,9 +3,6 @@ const Util = require('../utils/Util')
 const unionidWebsite = require('./unionidWebsite').unionidWebsite
 const scanCodeUnionid = require('./scanCodeUnionid').scanCodeUnionid
 
-const WebsiteDao = require('../dao/websitedao');
-const websiteDao = new WebsiteDao()
-
 const redis = require('redis')
 const rds = redis.createClient(settings.redisConfig)
 
@@ -19,7 +16,8 @@ async function Auth (req, res, next){
     const params = req.query;
     let code = params['code'];
 
-    const website_id = await gtWbsiteIdByDomain(req.headers.host);
+    const website_info = await Util.getWebsiteInfoByDomain(req.headers.host);
+    const website_id = website_info['_id']
     if (!website_id){
         _noAuth(res, 404, 'Domain name that does not exist.')
         console.log('Domain name that does not exist.')
@@ -30,8 +28,6 @@ async function Auth (req, res, next){
 
     console.log('get params..')
     console.log(params)
-
-    const fullPath = Util.getFullPath(req);
 
     if (code) {
 
@@ -120,19 +116,6 @@ function _noAuth(res, code, message) {
     res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
     res.write(result)
     res.end()
-}
-
-/**
- * 根据域名获取website_id
- * @param {*} domain 
- */
-async function gtWbsiteIdByDomain(domain){
-    let data = await websiteDao.findOne({
-        "src": {
-            "$regex": eval(`/${domain}/ig`)
-        }
-    })
-    return data ? data['_id'] : ''
 }
 
 module.exports = Auth
