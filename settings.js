@@ -16,14 +16,12 @@ if (NODE_ENV == 'production') {
     redisConfig.password = 'bI2CXR5usUhfve'
 }
 
-const appid = 'dingoaoakodwsnx0ty00tb'
-
-// 重定向地址
-const scanLoginUrl = 'https://oapi.dingtalk.com/connect/qrconnect?appid=' + appid + '&response_type=code&scope=snsapi_login&state=STATE&redirect_uri='
+// 配置后台服务
+const scancodeUrl = NODE_ENV == 'development' ? 'scancode.liquidnetwork.com' : 'base-login:80';
 
 module.exports = {
     serverPort,
     mongoUrl,
-    scanLoginUrl,
-    redisConfig
+    redisConfig,
+    scancodeUrl
 }

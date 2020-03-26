@@ -3,9 +3,6 @@ const url = require('url');
 const settings = require('../settings')
 const Util = require('../utils/Util')
 
-// const nginxConfig = '/api-proxy'
-const nginxConfig = ''
-
 const redis = require('redis')
 const rds = redis.createClient(settings.redisConfig)
 
@@ -15,7 +12,6 @@ let getHeader = (reqClient) => {
     headers.path = reqClient.path;
     headers.query = reqClient.query;
     headers.cookie = reqClient.get('cookie') || '';
-
     return headers;
 }
 
@@ -23,13 +19,9 @@ let getHeader = (reqClient) => {
 let getHostInfo = (src) => {
     let url_parse = url.parse(src)
     let info = {
-        hostname: 'abtest-api',
+        hostname: url_parse.hostname,
         port: url_parse.port || 80
     }
-    // let info = {
-    //     hostname: '127.0.0.1',
-    //     port: 5003
-    // }
     return info
 }
 
@@ -41,6 +33,7 @@ const proxy  = () => {
         let params = reqClient.query;
         let code = params['code'];
 
+        //从redis中获取用户信息
         let doc = await new Promise( (resolve) => {
             rds.get(code,function(err, res){
                 return resolve(res);
@@ -49,14 +42,14 @@ const proxy  = () => {
         let userInfo = JSON.parse(doc)['user_info'] || {}
         let user_id = userInfo['unionid']
 
-        // 获取website_id
+        // 获取website_info
         const website_info = await Util.getWebsiteInfoByDomain(reqClient.headers.host);
-        const website_id = website_info['_id']
 
         // 获取代理信息
-        const webinfo = await websiteDao.findOne({_id: website_id})
-        const webSrc= webinfo['src']
-        let reqOptions = getHostInfo(webSrc)
+        const proxyPath = website_info['proxyPath']
+        const proxyHost = website_info['proxyHost']
+
+        let reqOptions = getHostInfo(proxyHost)
 
         console.log('start proxy...')
         // console.log(reqOptions)
@@ -73,7 +66,7 @@ const proxy  = () => {
             query.push(key + '=' + headers.query[key]);
         });
         
-        reqOptions.path = nginxConfig + headers.path + (query.length === 0 ? '' : ('?' + query.join('&')));
+        reqOptions.path = proxyPath + headers.path + (query.length === 0 ? '' : ('?' + query.join('&')));
         reqOptions.cookie = headers.cookie;
         reqOptions.method = reqClient.method;
 

@@ -43,7 +43,7 @@ async function Auth (req, res, next){
                 rds.expire(code, 10800)
                 _auth(req, res, next, res_dict, website_id)
             } else {
-                scanCodeUnionid(code).then((info)=>{
+                scanCodeUnionid(code, req).then((info)=>{
                     // 如果redis中不存在临时code 缓存code 3小时
                     rds.setex(code, 10800, JSON.stringify(info))
                     _auth(req, res, next, info, website_id)
@@ -52,8 +52,6 @@ async function Auth (req, res, next){
         });
     }else{
         _noAuth(res)
-        // res.redirect(301, settings.scanLoginUrl + encodeURIComponent(fullPath))
-        // res.redirect(301, 'http://scancode.liquidnetwork.com?redirect_url=' + encodeURIComponent(fullPath))
     }
 }
 
@@ -65,7 +63,6 @@ async function Auth (req, res, next){
  * @param {Objec} info 用户信息
  */
 function _auth(req, res, next, info, website_id) {
-    const params = req.query;
 
     console.log('start auth...')
     console.log('website_id is ' + website_id)
@@ -93,14 +90,10 @@ function _auth(req, res, next, info, website_id) {
             }else{
                 console.log('auth_fail!!!')
                 _noAuth(res)
-                // res.redirect(301, settings.scanLoginUrl + encodeURIComponent(fullPath))
-                // res.redirect(301, 'http://scancode.liquidnetwork.com?redirect_url=' + encodeURIComponent(fullPath))
             }
         })
     }else{
         _noAuth(res)
-        // res.redirect(301, settings.scanLoginUrl + encodeURIComponent(fullPath))
-        // res.redirect(301, 'http://scancode.liquidnetwork.com?redirect_url=' + encodeURIComponent(fullPath))
     }
 }
 

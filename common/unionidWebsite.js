@@ -34,10 +34,8 @@ async function unionidWebsite(unionid){
             website_id: item['_id']
         })
     });
-
     return dataList
 }
-
 
 module.exports = {
     unionidWebsite
