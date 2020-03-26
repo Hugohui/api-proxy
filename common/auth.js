@@ -45,12 +45,12 @@ async function Auth (req, res, next){
                 res_dict = JSON.parse(redis_info)
                 // 有请求进来更新时间
                 rds.expire(code, 10800)
-                _auth(req, res, next, res_dict)
+                _auth(req, res, next, res_dict, website_id)
             } else {
                 scanCodeUnionid(code).then((info)=>{
                     // 如果redis中不存在临时code 缓存code 3小时
                     rds.setex(code, 10800, JSON.stringify(info))
-                    _auth(req, res, next, info)
+                    _auth(req, res, next, info, website_id)
                 })
             }
         });
@@ -68,11 +68,11 @@ async function Auth (req, res, next){
  * @param {*} next 
  * @param {Objec} info 用户信息
  */
-function _auth(req, res, next, info) {
+function _auth(req, res, next, info, website_id) {
     const params = req.query;
-    const website_id = params['website_id'];
 
     console.log('start auth...')
+    console.log('website_id is ' + website_id)
 
     const fullPath = Util.getFullPath(req);
     // 判断权限
@@ -81,14 +81,16 @@ function _auth(req, res, next, info) {
     if ( errcode == 0) {
         const userInfo = info['user_info'] || {}
         const unionid = userInfo['unionid']
+        console.log('unionid is ' + unionid)
         unionidWebsite(unionid).then((data_list)=>{
-
             let auth_success = false
-            data_list.forEach((webitem)=>{
-                if (webitem.website_id == website_id){
+            for(let i=0; i < data_list.length; i++){
+                if (data_list[i]['website_id'].toString() == website_id){
                     auth_success = true
+                    console.log(data_list[i]['website_id'].toString())
+                    break;
                 }
-            })
+            }
             if(auth_success){
                 console.log('auth_success!!!')
                 next()

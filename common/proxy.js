@@ -3,9 +3,13 @@ const querystring = require('querystring');
 const WebsiteDao = require('../dao/websitedao');
 const websiteDao = new WebsiteDao()
 const url = require('url');
+const settings = require('../settings')
 
 // const nginxConfig = '/api-proxy'
 const nginxConfig = ''
+
+const redis = require('redis')
+const rds = redis.createClient(settings.redisConfig)
 
 //获取请求的cookie和query等
 let getHeader = (reqClient) => {
@@ -35,8 +39,23 @@ let getHostInfo = (src) => {
 const proxy  = () => {
     //返回请求处理函数，reqClient浏览器的请求，resClient是响应浏览器的对象
     return async function (reqClient, resClient) {
+
+        let params = reqClient.query;
+        let code = params['code'];
+
+        let doc = await new Promise( (resolve) => {
+            rds.get(code,function(err, res){
+                return resolve(res);
+            });
+        });
+        let userInfo = JSON.parse(doc)['user_info'] || {}
+        let user_id = userInfo['unionid']
+
+        // 获取website_id
+        let website_id = await gtWbsiteIdByDomain(reqClient.headers.host)
+
         // 获取代理信息
-        const webinfo = await websiteDao.findOne({_id: reqClient.query.website_id})
+        const webinfo = await websiteDao.findOne({_id: website_id})
         const webSrc= webinfo['src']
         let reqOptions = getHostInfo(webSrc)
 
@@ -49,14 +68,20 @@ const proxy  = () => {
         reqOptions.headers = reqClient.headers;
 
         let query = [];
-        if (headers.query) {
-            Object.keys(headers.query).map(key => {
-                query.push(key + '=' + headers.query[key]);
-            });
-            reqOptions.path = nginxConfig + headers.path + (query.length === 0 ? '' : ('?' + query.join('&')));
-        }
+        // 钉钉用户信息
+        headers.query = Object.assign({}, { user_id: user_id }, headers.query)
+        Object.keys(headers.query).map(key => {
+            query.push(key + '=' + headers.query[key]);
+        });
+        
+        reqOptions.path = nginxConfig + headers.path + (query.length === 0 ? '' : ('?' + query.join('&')));
         reqOptions.cookie = headers.cookie;
         reqOptions.method = reqClient.method;
+
+        // 拼接用户信息
+        if(reqOptions.method != 'GET'){
+            reqClient.body = Object.assign({}, reqClient.body, {user_id: user_id})
+        }
 
         //普通JSON数据代理
         let reqBody;
@@ -112,6 +137,19 @@ const proxy  = () => {
             reqProxy.end();
          }
     }
+}
+
+/**
+ * 根据域名获取website_id
+ * @param {*} domain 
+ */
+async function gtWbsiteIdByDomain(domain){
+    let data = await websiteDao.findOne({
+        "src": {
+            "$regex": eval(`/${domain}/ig`)
+        }
+    })
+    return data ? data['_id'] : ''
 }
 
 module.exports = proxy;
