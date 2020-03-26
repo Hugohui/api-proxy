@@ -16,8 +16,10 @@ if (NODE_ENV == 'production') {
     redisConfig.password = 'bI2CXR5usUhfve'
 }
 
+const appid = 'dingoaoakodwsnx0ty00tb'
+
 // 重定向地址
-const scanLoginUrl = 'https://oapi.dingtalk.com/connect/qrconnect?appid=dingoa7exbo0c5fxxvyvhq&response_type=code&scope=snsapi_login&state=STATE&redirect_uri='
+const scanLoginUrl = 'https://oapi.dingtalk.com/connect/qrconnect?appid=' + appid + '&response_type=code&scope=snsapi_login&state=STATE&redirect_uri='
 
 module.exports = {
     serverPort,

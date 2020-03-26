@@ -4,8 +4,8 @@ const WebsiteDao = require('../dao/websitedao');
 const websiteDao = new WebsiteDao()
 const url = require('url');
 
-const nginxConfig = '/api-proxy'
-// const nginxConfig = ''
+// const nginxConfig = '/api-proxy'
+const nginxConfig = ''
 
 //获取请求的cookie和query等
 let getHeader = (reqClient) => {
@@ -21,7 +21,7 @@ let getHeader = (reqClient) => {
 let getHostInfo = (src) => {
     let url_parse = url.parse(src)
     let info = {
-        hostname: url_parse.hostname,
+        hostname: 'abtest-api',
         port: url_parse.port || 80
     }
     // let info = {

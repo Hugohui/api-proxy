@@ -3,6 +3,9 @@ const Util = require('../utils/Util')
 const unionidWebsite = require('./unionidWebsite').unionidWebsite
 const scanCodeUnionid = require('./scanCodeUnionid').scanCodeUnionid
 
+const WebsiteDao = require('../dao/websitedao');
+const websiteDao = new WebsiteDao()
+
 const redis = require('redis')
 const rds = redis.createClient(settings.redisConfig)
 
@@ -10,12 +13,18 @@ const rds = redis.createClient(settings.redisConfig)
  * Auth
  * @param {*} req 
  * @param {*} res 
- * @param {*} next 
+ * @param {*} next
  */
-function Auth (req, res, next){
+async function Auth (req, res, next){
     const params = req.query;
     let code = params['code'];
-    const website_id = params['website_id'];
+
+    const website_id = await gtWbsiteIdByDomain(req.headers.host);
+    if (!website_id){
+        _noAuth(res, 404, 'Domain name that does not exist.')
+        console.log('Domain name that does not exist.')
+        return
+    }
 
     code = Array.isArray(code) ? code[code.length - 1] : code;
 
@@ -24,7 +33,7 @@ function Auth (req, res, next){
 
     const fullPath = Util.getFullPath(req);
 
-    if (code && website_id) {
+    if (code) {
 
         console.log('read redis starting...')
 
@@ -48,9 +57,17 @@ function Auth (req, res, next){
     }else{
         _noAuth(res)
         // res.redirect(301, settings.scanLoginUrl + encodeURIComponent(fullPath))
+        // res.redirect(301, 'http://scancode.liquidnetwork.com?redirect_url=' + encodeURIComponent(fullPath))
     }
 }
 
+/**
+ * 鉴权
+ * @param {*} req 
+ * @param {*} res 
+ * @param {*} next 
+ * @param {Objec} info 用户信息
+ */
 function _auth(req, res, next, info) {
     const params = req.query;
     const website_id = params['website_id'];
@@ -60,6 +77,7 @@ function _auth(req, res, next, info) {
     const fullPath = Util.getFullPath(req);
     // 判断权限
     const errcode = info['errcode']
+    console.log('errcode',errcode)
     if ( errcode == 0) {
         const userInfo = info['user_info'] || {}
         const unionid = userInfo['unionid']
@@ -78,22 +96,41 @@ function _auth(req, res, next, info) {
                 console.log('auth_fail!!!')
                 _noAuth(res)
                 // res.redirect(301, settings.scanLoginUrl + encodeURIComponent(fullPath))
+                // res.redirect(301, 'http://scancode.liquidnetwork.com?redirect_url=' + encodeURIComponent(fullPath))
             }
         })
     }else{
         _noAuth(res)
         // res.redirect(301, settings.scanLoginUrl + encodeURIComponent(fullPath))
+        // res.redirect(301, 'http://scancode.liquidnetwork.com?redirect_url=' + encodeURIComponent(fullPath))
     }
 }
 
-// 无权限
-function _noAuth(res) {
+/**
+ * 无权限
+ * @param {*} res 
+ */
+function _noAuth(res, code, message) {
     const result = JSON.stringify({
-        code: 0,
-        msg: '无权限'
+        code: code || 401,
+        msg: message || '无权限'
     })
+    res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
     res.write(result)
     res.end()
+}
+
+/**
+ * 根据域名获取website_id
+ * @param {*} domain 
+ */
+async function gtWbsiteIdByDomain(domain){
+    let data = await websiteDao.findOne({
+        "src": {
+            "$regex": eval(`/${domain}/ig`)
+        }
+    })
+    return data ? data['_id'] : ''
 }
 
 module.exports = Auth
