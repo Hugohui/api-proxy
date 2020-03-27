@@ -19,11 +19,16 @@ let { mongoClient } = require('./DB');
  */
 
 const websiteInfoSchema = new Schema({
+    _id: String,
     name: String,
     des: String, 
     src: String,
     icon: String,
-    itime: String
+    itime: String,
+    appSecret: String,
+    appId: String,
+    proxyPath: String,
+    proxyHost: String
 }, {
     runSettersOnQuery: true // 查询时是否执行 setters
 });

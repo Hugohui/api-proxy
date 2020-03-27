@@ -1,11 +1,10 @@
 const http = require('http');
-const querystring = require('querystring');
-const WebsiteDao = require('../dao/websitedao');
-const websiteDao = new WebsiteDao()
 const url = require('url');
+const settings = require('../settings')
+const Util = require('../utils/Util')
 
-const nginxConfig = '/api-proxy'
-// const nginxConfig = ''
+const redis = require('redis')
+const rds = redis.createClient(settings.redisConfig)
 
 //获取请求的cookie和query等
 let getHeader = (reqClient) => {
@@ -13,7 +12,6 @@ let getHeader = (reqClient) => {
     headers.path = reqClient.path;
     headers.query = reqClient.query;
     headers.cookie = reqClient.get('cookie') || '';
-
     return headers;
 }
 
@@ -24,10 +22,6 @@ let getHostInfo = (src) => {
         hostname: url_parse.hostname,
         port: url_parse.port || 80
     }
-    // let info = {
-    //     hostname: '127.0.0.1',
-    //     port: 5003
-    // }
     return info
 }
 
@@ -35,10 +29,27 @@ let getHostInfo = (src) => {
 const proxy  = () => {
     //返回请求处理函数，reqClient浏览器的请求，resClient是响应浏览器的对象
     return async function (reqClient, resClient) {
+
+        let params = reqClient.query;
+        let code = params['code'];
+
+        //从redis中获取用户信息
+        let doc = await new Promise( (resolve) => {
+            rds.get(code,function(err, res){
+                return resolve(res);
+            });
+        });
+        let userInfo = JSON.parse(doc)['user_info'] || {}
+        let user_id = userInfo['unionid']
+
+        // 获取website_info
+        const website_info = await Util.getWebsiteInfoByDomain(reqClient.headers.host);
+
         // 获取代理信息
-        const webinfo = await websiteDao.findOne({_id: reqClient.query.website_id})
-        const webSrc= webinfo['src']
-        let reqOptions = getHostInfo(webSrc)
+        const proxyPath = website_info['proxyPath']
+        const proxyHost = website_info['proxyHost']
+
+        let reqOptions = getHostInfo(proxyHost)
 
         console.log('start proxy...')
         // console.log(reqOptions)
@@ -49,20 +60,27 @@ const proxy  = () => {
         reqOptions.headers = reqClient.headers;
 
         let query = [];
-        if (headers.query) {
-            Object.keys(headers.query).map(key => {
-                query.push(key + '=' + headers.query[key]);
-            });
-            reqOptions.path = nginxConfig + headers.path + (query.length === 0 ? '' : ('?' + query.join('&')));
-        }
+        // 钉钉用户信息
+        headers.query = Object.assign({}, { user_id: user_id }, headers.query)
+        Object.keys(headers.query).map(key => {
+            query.push(key + '=' + headers.query[key]);
+        });
+        
+        reqOptions.path = proxyPath + headers.path + (query.length === 0 ? '' : ('?' + query.join('&')));
         reqOptions.cookie = headers.cookie;
         reqOptions.method = reqClient.method;
+
+        // 拼接用户信息
+        if(reqOptions.method != 'GET'){
+            reqClient.body = Object.assign({}, reqClient.body, {user_id: user_id})
+        }
 
         //普通JSON数据代理
         let reqBody;
         if (Object.keys(reqClient.body).length) {
             reqBody = JSON.stringify(reqClient.body)
-            reqOptions.headers['Content-Length'] = reqBody.length
+            // 此处需要计算buffer字节长度
+            reqOptions.headers['Content-Length'] = Buffer.byteLength(reqBody, 'utf8')
             reqOptions.headers['Content-Type'] = 'application/json'
          }
 

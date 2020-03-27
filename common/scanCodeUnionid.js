@@ -1,24 +1,14 @@
-const crypto = require('crypto');
-// const request = require('request');
-const Base64 = require('js-base64').Base64;
-const Hmac = require('js-crypto-hmac')
-var sha256 = require('js-sha256').sha256;
 var request = require('sync-request');
+const Util = require('../utils/Util')
+const settings = require('../settings')
 
-async function scanCodeUnionid(code){
+async function scanCodeUnionid(code, req){
 
-    const timestamp = new Date().getTime().toString()
+    const websiteInfo = await Util.getWebsiteInfoByDomain(req.headers.host)
+    const appSecret = websiteInfo['appSecret']
+    const appId = websiteInfo['appId']
 
-    const appsecret = 'ufdrDP2Rxm1eQk2A7bbL20DGn95-k5Z4Nf4inwTcvJsuODpNV5GZAOb80cXLax9c'
-    const appid = 'dingoa7exbo0c5fxxvyvhq'
-
-    let hash = sha256.hmac.create(appsecret);
-    hash.update(timestamp);
-    const signature = encodeURIComponent(Base64.encode(hash.hex()))
-
-    const data = {'code': code}
-
-    const url = 'http://scancode.liquidnetwork.com/white/getuserinfo_bycode?code=' + code;
+    const url = 'http://' + settings.scancodeUrl + '/white/getuserinfo_bycode?code=' + code + '&appsecret='+ appSecret + '&appid=' + appId;
     const response = request('GET', url)
     const info = JSON.parse(response.getBody('utf8')).data
 
