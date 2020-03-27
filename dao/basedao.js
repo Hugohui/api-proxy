@@ -86,10 +86,10 @@ class BaseDao {
         return new Promise((resolve, reject) => {
             this.Model.findOne(condition, constraints ? constraints : null, (error, results) => {
                 if (error) {
-                    // console.log('findOne error--> ', error);
+                    console.log('findOne error--> ', error);
                     reject(error);
                 } else {
-                    // console.log('findOne results--> ', results);
+                    console.log('findOne results--> ', results);
                     resolve(results);
                 }
             });
