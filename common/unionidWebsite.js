@@ -1,4 +1,5 @@
 
+const ObjectId = require('mongodb').ObjectId;
 const WebsiteDao = require('../dao/websitedao');
 const UserDao = require('../dao/userdao');
 const websiteDao = new WebsiteDao()
@@ -16,10 +17,14 @@ async function unionidWebsite(unionid){
     if (isAdmin) {
         websiteinfo = await websiteDao.findAll()
     } else {
-        state_arr = dduserinfo['state_arr'] || []
-        websiteinfo = await websiteDao.findAll({
-            _id: {
-                "$in": state_arr
+        let state_arr = dduserinfo['state_arr'] || []
+
+        // 此处可优化
+        const temp_websiteinfo = await websiteDao.findAll()
+        temp_websiteinfo.forEach((item)=>{
+            const _id = item['_id'].toString()
+            if (state_arr.indexOf(_id) != -1){
+                websiteinfo.push(item)
             }
         })
     }
@@ -34,6 +39,8 @@ async function unionidWebsite(unionid){
             website_id: item['_id']
         })
     });
+    console.log('=====weblist====')
+    console.log(dataList)
     return dataList
 }
 
