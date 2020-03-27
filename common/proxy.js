@@ -79,7 +79,8 @@ const proxy  = () => {
         let reqBody;
         if (Object.keys(reqClient.body).length) {
             reqBody = JSON.stringify(reqClient.body)
-            reqOptions.headers['Content-Length'] = reqBody.length
+            // 此处需要计算buffer字节长度
+            reqOptions.headers['Content-Length'] = Buffer.byteLength(reqBody, 'utf8')
             reqOptions.headers['Content-Type'] = 'application/json'
          }
 
