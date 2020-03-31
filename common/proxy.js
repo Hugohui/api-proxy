@@ -2,6 +2,7 @@ const http = require('http');
 const url = require('url');
 const settings = require('../settings')
 const Util = require('../utils/Util')
+const querystring = require('querystring')
 
 const redis = require('redis')
 const rds = redis.createClient(settings.redisConfig)
@@ -31,7 +32,7 @@ const proxy  = () => {
     return async function (reqClient, resClient) {
 
         let params = reqClient.query;
-        let code = params['code'];
+        let code = params['code'] || reqClient.body['code'];
 
         //从redis中获取用户信息
         let doc = await new Promise( (resolve) => {
@@ -78,10 +79,14 @@ const proxy  = () => {
         //普通JSON数据代理
         let reqBody;
         if (Object.keys(reqClient.body).length) {
-            reqBody = JSON.stringify(reqClient.body)
+            if (reqClient.headers['content-type'].indexOf('application/x-www-form-urlencoded') != -1) {
+                reqBody = querystring.stringify(reqClient.body)
+            }else{
+                reqBody = JSON.stringify(reqClient.body)
+            }
             // 此处需要计算buffer字节长度
             reqOptions.headers['Content-Length'] = Buffer.byteLength(reqBody, 'utf8')
-            reqOptions.headers['Content-Type'] = 'application/json'
+            reqOptions.headers['Content-Type'] = reqClient.headers['content-type']
          }
 
         console.log('start send http request...')

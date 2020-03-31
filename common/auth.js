@@ -14,7 +14,8 @@ const rds = redis.createClient(settings.redisConfig)
  */
 async function Auth (req, res, next){
     const params = req.query;
-    let code = params['code'];
+
+    let code = params['code'] || req.body['code'];
 
     const website_info = await Util.getWebsiteInfoByDomain(req.headers.host);
     const website_id = website_info['_id']
@@ -26,8 +27,11 @@ async function Auth (req, res, next){
 
     code = Array.isArray(code) ? code[code.length - 1] : code;
 
-    console.log('get params..')
+    console.log('get query..')
     console.log(params)
+
+    console.log('get body...')
+    console.log(req.body)
 
     if (code) {
 
