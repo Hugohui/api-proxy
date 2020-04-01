@@ -51,7 +51,7 @@ async function Auth (req, res, next){
                 rds.expire(code, 10800)
                 _auth(req, res, next, res_dict, website_id)
             } else {
-                scanCodeUnionid(code, req).then((info)=>{
+                scanCodeUnionid(code, website_id).then((info)=>{
                     // 如果redis中不存在临时code 缓存code 3小时
                     rds.setex(code, 10800, JSON.stringify(info))
                     _auth(req, res, next, info, website_id)
