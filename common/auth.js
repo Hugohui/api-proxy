@@ -16,9 +16,13 @@ async function Auth (req, res, next){
     const params = req.query;
 
     let code = params['code'] || req.body['code'];
+    let params_website_id = params['website_id'] || req.body['website_id'];
 
     const website_info = await Util.getWebsiteInfoByDomain(req.headers.host);
-    const website_id = website_info['_id']
+    const website_id = website_info['_id'] || params_website_id
+
+    console.log('website_id====' + website_id)
+
     if (!website_id){
         _noAuth(res, 404, 'Domain name that does not exist.')
         console.log('Domain name that does not exist.')
