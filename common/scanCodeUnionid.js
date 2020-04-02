@@ -2,9 +2,9 @@ var request = require('sync-request');
 const Util = require('../utils/Util')
 const settings = require('../settings')
 
-async function scanCodeUnionid(code, req){
+async function scanCodeUnionid(code, website_id){
 
-    const websiteInfo = await Util.getWebsiteInfoByDomain(req.headers.host)
+    const websiteInfo = await Util.getWebsiteInfoByWebsiteId(website_id);
     const appSecret = websiteInfo['appSecret']
     const appId = websiteInfo['appId']
 

@@ -2,6 +2,7 @@ const http = require('http');
 const url = require('url');
 const settings = require('../settings')
 const Util = require('../utils/Util')
+const querystring = require('querystring')
 
 const redis = require('redis')
 const rds = redis.createClient(settings.redisConfig)
@@ -30,8 +31,10 @@ const proxy  = () => {
     //返回请求处理函数，reqClient浏览器的请求，resClient是响应浏览器的对象
     return async function (reqClient, resClient) {
 
+        let requestOver = false
         let params = reqClient.query;
-        let code = params['code'];
+        let code = params['code'] || reqClient.body['code'];
+        let params_website_id = params['website_id'] || reqClient.body['website_id'];
 
         //从redis中获取用户信息
         let doc = await new Promise( (resolve) => {
@@ -43,7 +46,13 @@ const proxy  = () => {
         let user_id = userInfo['unionid']
 
         // 获取website_info
-        const website_info = await Util.getWebsiteInfoByDomain(reqClient.headers.host);
+        let website_info;
+        if(params_website_id){
+            console.log('params_website_id===' + params_website_id)
+            website_info = await Util.getWebsiteInfoByWebsiteId(params_website_id);
+        }else{
+            website_info = await Util.getWebsiteInfoByDomain(reqClient.headers.host);
+        }
 
         // 获取代理信息
         const proxyPath = website_info['proxyPath']
@@ -78,10 +87,14 @@ const proxy  = () => {
         //普通JSON数据代理
         let reqBody;
         if (Object.keys(reqClient.body).length) {
-            reqBody = JSON.stringify(reqClient.body)
+            if (reqClient.headers['content-type'].indexOf('application/x-www-form-urlencoded') != -1 || reqClient.headers['content-type'].indexOf('multipart/form-data') != -1) {
+                reqBody = querystring.stringify(reqClient.body)
+            }else{
+                reqBody = JSON.stringify(reqClient.body)
+            }
             // 此处需要计算buffer字节长度
             reqOptions.headers['Content-Length'] = Buffer.byteLength(reqBody, 'utf8')
-            reqOptions.headers['Content-Type'] = 'application/json'
+            reqOptions.headers['Content-Type'] = reqClient.headers['content-type']
          }
 
         console.log('start send http request...')
@@ -120,10 +133,11 @@ const proxy  = () => {
         reqClient.on('end', () => {
           //向目标服务器写数据结束
             reqProxy.end();
+            requestOver = true
         });
         
         //普通JSON数据代理
-         if (Object.keys(reqClient.body).length) {
+         if (Object.keys(reqClient.body).length && !requestOver) {
             console.log('send json body')
             console.log(reqBody)
             reqProxy.write(reqBody)
