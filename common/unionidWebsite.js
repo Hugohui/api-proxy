@@ -39,8 +39,6 @@ async function unionidWebsite(unionid){
             website_id: item['_id']
         })
     });
-    console.log('=====weblist====')
-    console.log(dataList)
     return dataList
 }
 
