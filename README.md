@@ -107,31 +107,3 @@ let proxy = (options) => {
 module.exports = proxy;
 ```
 上面就是node代理的核心代码。支持普通的请求，静态资源代理，文件上传下载代理等功能。<br>
-
-**git 地址：https://github.com/xubaodian/nodeProxy.git **<br>
-
-demo中，核心代码在common/proxy.js里，我还实现了两个测试服务。<br>
-
-在server文件下的app.js和app2.js是两个服务的入口文件。<br>
-
-app2.js是目标服务器，有三个测试页面<br>
-1、http://localhost:20000/json.html post请求测试，对应'/json'接口，可发送数据，f12查看请求是否成功 <br>
-2、http://localhost:20000/upload.html 文件上传测试，对应接口'/upload'接口，上传文件，f12查看请求是否成功，同时在服务器upload文件夹下会有文件。<br>
-3、http://localhost:20000/get.html  get请求测试，对应接口'/get'，同样f12查看<br>
-app2为目标服务器，有3个接口。<br>
-1、'/upload'接口，测试文件上传功能，上传文件将放在uploads文件夹下，上传的文件，文件名是一个uuid，没有后缀，添加后缀即可查看文件是完整。测试过，传1G的文件没问题，再大的文件没试过，有需要的可以试下<br>
-2、'/json'，测试POST请求。<br>
-3、'/get'，测试GET请求。<br>
-
-app.js为代理服务为器，监听端口为18000,将所有请求转发至app2，即所有app2的接口静态资源，app中访问时一致的。<br>
-测试步骤：
-1、可开启目标服务器，通过三个页面测试功能。<br>
-2、开启代理服务器，访问下面三个页面：<br>
-   http://localhost:18000/json.html <br> 
-   http://localhost:18000/upload.html<br>
-   http://localhost:18000/get.html <br>
-测试同样的功能。若和步骤1实现同样功能，则代理服务功能已经实现了。<br>
-经过测试，代理功能是没问题的。<br>
-如果问题欢迎留言，或发送邮件至472784995@qq.com。
-
-至于性能，我没测过，因为我自己这边的应用场景，访问量都不大，可以使用。
